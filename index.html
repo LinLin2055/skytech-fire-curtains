@@ -482,9 +482,9 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
   // floor markings (shown with the smoke scenario and in plan)
   function decal(text, color, z, w) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w / 8), new THREE.MeshBasicMaterial({ map: textTex(text, color), transparent: true, depthWrite: false, opacity: 0.85 }));
-    m.rotation.x = -Math.PI / 2; m.position.set(0, 0.004, z); scene.add(m); return m;
+    m.rotation.x = -Math.PI / 2; m.position.set(z > 0 ? 3.2 : 0, 0.004, z); scene.add(m); return m;
   }
-  const decals = [decal("FIRE SIDE", "#b91c1c", -4.4, 4.6), decal("PROTECTED SIDE", "#047857", 3.6, 5.2)];
+  const decals = [decal("FIRE SIDE", "#b91c1c", -4.4, 4.6), decal("PROTECTED SIDE", "#047857", 2.3, 5.2)];
 
   // ---------------------------------------------------------------- curtain modules
   const foldGeo = (() => {
@@ -561,7 +561,7 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
     dims.add(bar([XH - 0.09, y - 0.09, ZH], [XH + 0.09, y + 0.09, ZH], 0.045));
     dims.add(bar([L / 2 - 0.05, y, ZH], [XH + 0.2, y, ZH], 0.018, EXTC));
   }
-  const DIM_VIEWS = ["overview", "hero", "joint", "jointtop", "plan"];
+  const DIM_VIEWS = ["overview", "hero", "joint", "jointtop", "plan", "smoke"];
 
   // ---------------------------------------------------------------- fire
   const fire = new THREE.Group();
@@ -674,10 +674,11 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
       m.guides.forEach((gd, j) => { gd.scale.set(0.055, TOP, 0.1); gd.position.set(j ? L / 2 - 0.028 : -L / 2 + 0.028, TOP / 2, p.z); });
     }
     dims.visible = S.dims && DIM_VIEWS.includes(S.view);
-    const floorDims = S.view === "overview" || S.view === "hero";
+    const floorDims = ["overview", "hero", "smoke"].includes(S.view);
+    const modView = S.view === "overview" || S.view === "hero";
     dims.children.forEach((c) => { if (c !== dimsMod && c !== dimsOv) c.visible = floorDims; });
     dimsOv.visible = S.blend < 0.5;
-    dimsMod.visible = S.blend < 0.5 && S.modDims && floorDims;
+    dimsMod.visible = S.blend < 0.5 && S.modDims && modView;
     const showOv = S.highlight && S.drop > 0.02;
     const edgeMode = S.blend > 0.5;
     joints.forEach((jt, k) => {
@@ -913,11 +914,11 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
     { id: "sg", text: "Side guide", at: () => [L / 2 - 0.03, 2.9, modules[2].c.z + 0.05], views: ["overview", "hero"] },
     { id: "cp", text: "Control panel", at: () => [-L / 2 - 1.1, 1.82, WT / 2 + 0.12], views: ["overview", "hero"] },
     { id: "sd", text: "Smoke detector", at: () => [0, HC - 0.06, -1.4], views: ["smoke", "fireside"] },
-    { id: "dL", text: "Overall length 24\u202f200 mm", cls: () => "dim", when: () => S.dims, at: () => [-3.9, FLY, ZL], views: ["overview", "hero"] },
+    { id: "dL", text: "Overall length 24\u202f200 mm", cls: () => "dim", when: () => S.dims, at: () => [-3.9, FLY, ZL], views: ["overview", "hero", "smoke"] },
     { id: "d1", text: "Module 1 · 8\u202f400 mm", cls: () => "dim", when: () => S.dims && S.modDims && S.blend < 0.5, at: () => [(-L / 2 + M1b) / 2, FLY, ZM13], views: ["overview", "hero"] },
     { id: "d2", text: "Module 2 · 8\u202f400 mm", cls: () => "dim", when: () => S.dims && S.modDims && S.blend < 0.5, at: () => [0, FLY, ZM2], views: ["overview", "hero"] },
     { id: "d3", text: "Module 3 · 8\u202f400 mm", cls: () => "dim", when: () => S.dims && S.modDims && S.blend < 0.5, at: () => [(M3a + L / 2) / 2, FLY, ZM13], views: ["overview", "hero"] },
-    { id: "dH", text: "Height 4\u202f100 mm", cls: () => "dim", when: () => S.dims, at: () => [XH, TOP * 0.55, ZH], views: ["overview", "hero"] },
+    { id: "dH", text: "Height 4\u202f100 mm", cls: () => "dim", when: () => S.dims, at: () => [XH, TOP * 0.55, ZH], views: ["overview", "hero", "smoke"] },
     { id: "dO1", text: "500 mm", cls: () => "dim", when: () => S.dims && S.blend < 0.5, at: () => [J[0], HC + 0.62, 0], views: ["joint", "jointtop", "plan"] },
   ];
   // shorter text on phones; null = hidden on phones
@@ -1042,11 +1043,11 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
     [0, "overview", "SC1302 Main lobby · 24\u202f200 × 4\u202f100 mm", ["dL", "dH"]],
     [2.3, "overview", "Three fire curtain modules of 8\u202f400 mm", ["m1", "m2", "m3", "o1", "o2"]],
     [4.6, "joint", "Two staggered lines · 500 mm overlap at every joint", ["hb1", "hb2", "o1", "dO1"]],
-    [10, "smoke", "Normal operation: curtains rolled up in the headboxes", []],
-    [12.2, "smoke", "Fire starts on the fire side", ["sd"]],
-    [15, "smoke", "Fire alarm: all modules descend together by gravity", ["o1", "o2"]],
-    [21, "smoke", "Closed: fire and smoke are held on the fire side", ["o1", "o2"]],
-    [25, "smoke", "For comparison, edge to edge: smoke passes every joint", ["o1", "o2"]],
+    [10, "smoke", "Normal operation: curtains rolled up in the headboxes", ["dL"]],
+    [12.2, "smoke", "Fire starts on the fire side", ["sd", "dL"]],
+    [15, "smoke", "Fire alarm: all modules descend together by gravity", ["o1", "o2", "dL"]],
+    [21, "smoke", "Closed: fire and smoke are held on the fire side", ["o1", "o2", "dL"]],
+    [25, "smoke", "For comparison, edge to edge: smoke passes every joint", ["o1", "o2", "dL"]],
     [31, "end", "", []],
   ];
   const FILM_END = 34.5;
