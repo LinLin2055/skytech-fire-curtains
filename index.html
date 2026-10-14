@@ -133,10 +133,15 @@ body.shot #labels { display: none; }
 @media (max-width: 820px) {
   html, body { height: auto; }
   .app { grid-template-columns: 1fr; height: auto; }
-  .stage { order: -1; height: 62vh; min-height: 340px; }
+  .stage { order: -1; height: 52vh; min-height: 300px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 3;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, .12); }
   .rail { border-right: 0; padding: 18px 16px; }
   h1 { font-size: 30px; }
   .hint { display: none; }
+  .lbl span { font-size: 11.5px; padding: 3px 6px; bottom: 19px; }
+  .lbl::after { height: 15px; }
+  .lbl.dim span { font-size: 11px; padding: 2px 5px; }
+  .status { font-size: 12.5px; padding: 6px 10px; left: 10px; top: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .status[data-tone="alarm"] .dot { animation: none; } }
 
@@ -915,15 +920,21 @@ body.film .lbl.dim span { font-size: 19px; bottom: auto; }
     { id: "dH", text: "Height 4\u202f100 mm", cls: () => "dim", when: () => S.dims, at: () => [XH, TOP * 0.55, ZH], views: ["overview", "hero"] },
     { id: "dO1", text: "500 mm", cls: () => "dim", when: () => S.dims && S.blend < 0.5, at: () => [J[0], HC + 0.62, 0], views: ["joint", "jointtop", "plan"] },
   ];
+  // shorter text on phones; null = hidden on phones
+  const SHORT = { m1: null, m2: null, m3: null, hb: null, hb1: "Front box", hb2: "Back box", f1: null, f2: null,
+    dL: "24 200 mm", dH: "4 100 mm", d1: "8 400", d2: "8 400", d3: "8 400", pf: "Front", pb: "Back",
+    sg: null, cp: null, sd: null, bb: null };
   const mid = (i) => (modules[i].c.a + modules[i].c.b) / 2;
   const layer = document.getElementById("labels");
   LBL.forEach((l) => { l.el = document.createElement("div"); l.el.className = "lbl"; l.el.innerHTML = "<i></i><span></span>"; layer.appendChild(l.el); });
   const v3 = new THREE.Vector3();
   function projectLabels() {
     const w = stage.clientWidth, h = stage.clientHeight, out = [];
+    const narrow = !FILM && !SHOT && w < 560;
     for (const l of LBL) {
+      if (narrow && SHORT[l.id] === null) { l.el.style.display = "none"; continue; }
       const show = S.labels && (S.filmKeep ? S.filmKeep.has(l.id) : l.views.includes(S.view)) && (!l.when || l.when());
-      const txt = typeof l.text === "function" ? l.text() : l.text;
+      const txt = narrow && SHORT[l.id] ? SHORT[l.id] : (typeof l.text === "function" ? l.text() : l.text);
       const cls = l.cls ? l.cls() : "";
       v3.set(...l.at()).project(camera);
       const vis = show && v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05;
